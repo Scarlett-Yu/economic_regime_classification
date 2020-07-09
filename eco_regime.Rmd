@@ -1,0 +1,96 @@
+---
+title: "Economic Regime Classification"
+output:
+  html_notebook: default
+  word_document: default
+---
+
+```{r include=FALSE}
+library("Rblpapi")
+library("xts")
+library("imputeTS")
+#####classification#####
+library(PerformanceAnalytics)
+library(dygraphs)
+library(GGally)
+#####k-means#####
+library(tidyverse)  # data manipulation
+library(cluster)    # clustering algorithms
+library(factoextra) # clustering algorithms & visualization
+library(dendextend) # for comparing two dendrograms
+```
+
+## 1. Perpare Data
+
+Totally we have 9 indices reflecting US economic market performance in this study. Those indices are listed in the code chunk below, in which you will see the name of each index and what it represent for. 
+```{r}
+indices = c("EHGDUS Index", #US Real GDP (QoQ, %, SAAR)  
+            "CPI YOY Index", #US CPI (inflation) Urban Consumer YoY NSA	
+            "CPI CHNG Index", #US CPI (inflation) Urban Consumer MoM SA	
+            "EHUPUS Index", #US Unemployment Rate (%)
+            "INJCJMOM Index", #US Initial Jobless Claims MoM SA 
+            "IP CHNG Index", #US Industrial Production MoM SA	
+            "NHCHSTCH Index", #Private Housing Units Started Total Monthly % Change, SA	
+            "GDP CRCH Index", #US Nominal GDP (QoQ, %, SAAR)	 
+            "NFP TCH Index" #US Employment on Nonfarm Payrolls Total (SA, Net Monthly Change, thousands) 
+            )
+```
+
+
+By ploting all indices from 1914 to 2020, we should notice that the data in 2020 is an **outlier**. For example, the US CPI inflation index became extremely volatile in 2020 and not reflect its long-term trend. The US government reported that the economy lost 20.5 million jobs in April, the deepest drop since the Great Depression. Therefore, it's not rational to include 2020 data in this anlaysis due to the data's abnormality. 
+
+```{r Prepare Data, include=FALSE}
+load("eco_data.RData")
+```
+
+```{r}
+plot(data.xts,col=rainbow(ncol(data.xts)))
+addLegend("bottomleft",col=rainbow(ncol(data.xts)),lty=1,lwd=2)
+```
+
+
+We should also notice that the length of some series started earlier that others and the frequency of some time series are quarterly other than monthly. To solve the inconsistency of time length, I only used data with the longest common history, that is, all data starts in Jan 1967 and ends in Dec 2019. To solve the problem of different frequency, I used the method of linear intepolation to replace the gap in quarterly series by the R package [imputeTS](https://journal.r-project.org/archive/2017/RJ-2017-009/RJ-2017-009.pdf). 
+
+```{r echo=FALSE}
+dat1967 = window(data.xts, start =as.yearmon("Jan 1967"), end=as.yearmon("Dec 2019"))
+#impute data-linear
+dat1967 = na_interpolation(dat1967)
+df = window(dat1967)
+dygraph(df)
+```
+
+
+
+```{r}
+scale(df)
+
+
+#dygraph(df) %>% dyRangeSelector()
+df=df[,c(2:7)]
+#correlation plot
+#ggpairs(as.data.frame(scale(df)))+theme_bw()
+#PCA
+ep <- endpoints(df,'years')
+df.yearly = period.apply(df,INDEX=ep, FUN=mean)
+df.yearly =as.data.frame(scale(df.yearly))
+row.names(df.yearly) = seq(1967, 2019, 1)
+PCdf = prcomp(df.yearly, scale =TRUE)
+biplot(PCdf , scale =1)
+fviz_pca_ind(PCdf,
+             col.ind = "cos2", # Color by the quality of representation
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+fviz_pca_var(PCdf,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+fviz_pca_biplot(PCdf, repel = TRUE,
+                col.var = "#2E9FDF", # Variables color
+                col.ind = "#696969"  # Individuals color
+)
+
+
+```
+
