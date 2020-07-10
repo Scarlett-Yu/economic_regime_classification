@@ -31,12 +31,12 @@ indices = c("EHGDUS Index", #US Real GDP (QoQ, %, SAAR)
             "IP CHNG Index", #US Industrial Production MoM SA	
             "NHCHSTCH Index", #Private Housing Units Started Total Monthly % Change, SA	
             "GDP CRCH Index", #US Nominal GDP (QoQ, %, SAAR)	 
-            "NFP TCH Index" #US Employment on Nonfarm Payrolls Total (SA, Net Monthly Change, thousands) 
+            "NFP TCH Index" #US Employment on Nonfarm Payrolls Total MoM Net Change (SA, Net Monthly Change, thousands) 
             )
 ```
 
 
-By ploting all indices from 1914 to 2020, we should notice that the data in 2020 is an **outlier**. For example, the US CPI inflation index became extremely volatile in 2020 and not reflect its long-term trend. The US government reported that the economy lost 20.5 million jobs in April, the deepest drop since the Great Depression. Therefore, it's not rational to include 2020 data in this anlaysis due to the data's abnormality. 
+By ploting all indices from 1914 to 2020, we should notice that the data in 2020 is an **outlier**. For example, the US Employment on Nonfarm Payrolls Total MoM Net Change index became extremely volatile in 2020 and not reflect its long-term trend. The US government reported that the economy lost 20.5 million jobs in April, the deepest drop since the Great Depression. Therefore, it's not rational to include 2020 data in this anlaysis due to the data's abnormality. 
 
 ```{r include=FALSE}
 load("eco_data.RData")
@@ -60,36 +60,67 @@ df = window(dat1967)
 dygraph(df)
 ```
 
-Since the absolute value of some variable like CPI is much greater than else
-In that case, before PCA, in addition to centering each variable,
-we also multiply it times a constant to make its variance equal to 1,
-i.e. we standardize each variable.
 
-```{r}
-#scale(df)
+## Data standardization 
 
+Since the absolute value of some variable like US Employment on Nonfarm Payrolls Total MoM Net Change index is much greater than else. In that case, before doing any statistical analysis, in addition to centering each variable, we also multiply it times a constant to make its variance equal to 1, i.e. we standardize each variable.
+```{r echo=FALSE}
+dygraph(scale(df))%>% dyRangeSelector()
+```
 
-#dygraph(df) %>% dyRangeSelector()
-df=df[,c(2:7)]
-#correlation plot
-#ggpairs(as.data.frame(scale(df)))+theme_bw()
+## Data Correlation
+
+Through looking into the correlation between each pairs of standardized indices, we can detect that some of indices are quiet closely related to each other. For example, US Real GDP index is fairly correlated with US Nominal GDP index. Therefore, we can use some dimension reduction techniques in statistics like PCA.
+
+```{r echo=FALSE, fig.height=10, fig.width=10, message=FALSE}
+ggpairs(as.data.frame(scale(df)))+theme_bw()
+```
+
+## Classification 
+
+### Principle Component Analaysis (PCA)
+
+Monthly data is too repetitious for PCA, as we aim to looking into different historic economic regimes rather than a specific month. 
+```{r include=FALSE}
 #PCA
 ep <- endpoints(df,'years')
 df.yearly = period.apply(df,INDEX=ep, FUN=mean)
 df.yearly =as.data.frame(scale(df.yearly))
 row.names(df.yearly) = seq(1967, 2019, 1)
 PCdf = prcomp(df.yearly, scale =TRUE)
-biplot(PCdf , scale =1)
-fviz_pca_ind(PCdf,
-             col.ind = "cos2", # Color by the quality of representation
+```
+
+####  Variable contributions to PC
+
+The plot below shows the contributions of variables in accounting for the variability to the top 2 principal components, that is, the higher contribution (%) of one economic index in this graph, the greater necessity to including this index into our analysis.
+```{r echo=FALSE, warning=FALSE}
+fviz_contrib(PCdf, choice = "var", axes = 1:2, top = 9)
+```
+
+#### Graph of individuals
+
+Individuals with a similar profile are grouped together.
+```{r echo=FALSE, fig.height=9, fig.width=9}
+fviz_pca_ind(PCdf, col.ind = "cos2",
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE     # Avoid text overlapping
-)
+             repel = TRUE # Avoid text overlapping (slow if many points)
+             )
+```
+
+#### Graph of variables
+
+Positive correlated variables point to the same side of the plot. Negative correlated variables point to opposite sides of the graph.
+```{r echo=FALSE}
 fviz_pca_var(PCdf,
              col.var = "contrib", # Color by contributions to the PC
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE     # Avoid text overlapping
 )
+```
+
+#### Biplot of both individuals and variables
+
+```{r echo=FALSE, fig.height=9, fig.width=9, warning=FALSE}
 fviz_pca_biplot(PCdf, repel = TRUE,
                 col.var = "#2E9FDF", # Variables color
                 col.ind = "#696969"  # Individuals color
