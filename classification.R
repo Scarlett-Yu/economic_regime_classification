@@ -54,7 +54,6 @@ df = window(dat1967, end=as.yearmon("Dec 2019"))
 plot(scale(df))
 
 #dygraph(df) %>% dyRangeSelector()
-df=df[,c(2:7)]
 #correlation plot
 #ggpairs(as.data.frame(scale(df)))+theme_bw()
 #PCA
@@ -81,86 +80,15 @@ fviz_pca_biplot(PCdf, repel = TRUE,
 
 summary(PCdf)
 plot(PCdf)
-PCdf5 = PCdf$rotation[,1:4]
-#kmeans
-kmpc <- kmeans(as.data.frame(PCdf5), centers = 2, nstart = 25)
-fviz_cluster(kmpc, data = PCdf5)
-#Clustering Distance Measures
-distance <- get_dist(df)
-#fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+
+###k-means
 
 ###Computing k-means clustering
-k2 <- kmeans(df, centers = 2, nstart = 30)
-str(k2)
-k2
-fviz_cluster(k2, data = df)
-df %>%
-  as_tibble() %>%
-  mutate(cluster = k2$cluster,
-         state = row.names(df)) %>%
-  ggplot(aes(`EHGDUS Index`, `CPI YOY Index`, color = factor(cluster), label = state)) +
-  geom_text()
+df2 = as.data.frame(df.yearly[,c(2:7,9)])
+# The plot above represents the variance within the clusters. It decreases as k increases, but it can be seen a bend (or “elbow”) at k = 4. 
+fviz_nbclust(df2,kmeans,method = "wss")+
+  geom_vline(xintercept = 4, linetype = 2)
 
-#k2$cluster
-df %>% mutate(cluster = k2$cluster) %>% head
-cluster_kmean = df %>% mutate(cluster = k2$cluster)
-xts0 = xts(cluster_kmean$cluster,order.by = as.yearmon(row.names(df)))
-plot(xts0,grid.col = NA,type = "b")
-dygraph(df) %>% dyRangeSelector()
-# set.seed(123)
-# gap_stat <- clusGap(df, FUN = kmeans, nstart = 25,
-#                     K.max = 10, B = 50)
-# # Print the result
-# print(gap_stat, method = "firstmax")
-#fviz_gap_stat(gap_stat)
+k2 <- kmeans(df2, centers = 4, nstart = 15)
+fviz_cluster(k2, data = df2, palette = "Set2", ggtheme = theme_minimal())
 
-# Dissimilarity matrix
-d <- dist(df, method = "euclidean")
-
-# Hierarchical clustering using Complete Linkage
-hc1 <- hclust(d, method = "complete" )
-
-# Plot the obtained dendrogram
-plot(hc1, cex = 0.6, hang = -1)
-hc3 <- agnes(df, method = "ward")
-pltree(hc3, cex = 0.6, hang = -1, main = "Dendrogram of agnes") 
-# compute divisive hierarchical clustering
-hc4 <- diana(df)
-
-# Divise coefficient; amount of clustering structure found
-hc4$dc
-## [1] 0.8514345
-
-# plot dendrogram
-pltree(hc4, cex = 0.6, hang = -1, main = "Dendrogram of diana")
-# Ward's method
-hc5 <- hclust(d, method = "ward.D2" )
-
-# Cut tree into 4 groups
-sub_grp <- cutree(hc5, k = 4)
-
-# Number of members in each cluster
-table(sub_grp)
-## sub_grp
-##  1  2  3  4 
-##  7 12 19 12
-df %>% mutate(cluster = sub_grp) %>% head
-cluster = df %>% mutate(cluster = sub_grp)
-xts1 = xts(cluster$cluster,order.by = as.yearmon(row.names(df)))
-plot(xts1,grid.col = NA,type = "p")
-plot(hc5, cex = 0.6)
-rect.hclust(hc5, k = 4, border = 2:5)
-fviz_cluster(list(data = df, cluster = sub_grp))
-# Compute distance matrix
-res.dist <- dist(df, method = "euclidean")
-
-# Compute 2 hierarchical clusterings
-hc1 <- hclust(res.dist, method = "complete")
-hc2 <- hclust(res.dist, method = "ward.D2")
-
-# Create two dendrograms
-dend1 <- as.dendrogram (hc1)
-dend2 <- as.dendrogram (hc2)
-
-tanglegram(dend1, dend2)
-fviz_nbclust(df, FUN = hcut, method = "silhouette")

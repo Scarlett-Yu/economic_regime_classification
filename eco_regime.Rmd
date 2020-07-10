@@ -129,3 +129,21 @@ fviz_pca_biplot(PCdf, repel = TRUE,
 
 ```
 
+### K-means
+
+K-means clustering (MacQueen 1967) is one of the most commonly used unsupervised machine learning algorithm for partitioning a given data set into a set of k groups (i.e. k clusters), where k represents the number of groups pre-specified by the analyst. It classifies objects in multiple groups (i.e., clusters), such that objects within the same cluster are as similar as possible (i.e., high intra-class similarity), whereas objects from different clusters are as dissimilar as possible (i.e., low inter-class similarity).
+
+```{r}
+# Using the results of variable contribution by PCA, I removed two least important indices from the original data.
+df2 = as.data.frame(df.yearly[,c(2:7,9)])
+# The plot above represents the variance within the clusters. It decreases as k increases, but it can be seen a bend (or “elbow”) at k = 4. 
+fviz_nbclust(df2,kmeans,method = "wss")+
+  geom_vline(xintercept = 4, linetype = 2)
+
+k2 <- kmeans(df2, centers = 4, nstart = 15)
+fviz_cluster(k2, data = df2, palette = "Set2", ggtheme = theme_minimal())
+```
+
+## Conclusion
+
+By the means of PCA and k-means clustering, we can classify the historical years from 1967 to 2019 into 4 different economic regimes. The first regime is compose of 2008, 2009 (global financial crisis), 2001 (Bursting of dot-com bubble – speculations concerning internet companies crashed), and so on. Therefore, this regime of economic scenarios represent financial crisis. Second Regime is pointed by the Private Housing Units Started Total Monthly Change Index, both 1997-1999 and 2012-2014 are located in this regime. This regime indicates economic recovery. Third regime which is indicated by US Initial jobless claims index and two CPI index, represented by 1974 (1973–1974 stock market crash), 1979-1981(Early 1980s recession).  Fourth regime is dominated by the high value of GDP, Employment Payroll, Industrial Production. This regime is represented by 1976-1978, a period of economic expansion. 
