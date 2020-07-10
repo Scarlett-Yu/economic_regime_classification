@@ -32,6 +32,7 @@ data_extract = function(ticker_list){
 
 dat = data_extract(indices)
 save(dat,file ="eco_data.RData")
+
 ym<-as.yearmon(row.names(dat))
 data.xts = xts(dat, order.by = ym)
 plot(data.xts,col=rainbow(ncol(data.xts)))
@@ -51,7 +52,6 @@ library(factoextra) # clustering algorithms & visualization
 library(dendextend) # for comparing two dendrograms
 ##################################
 df = window(dat1967, end=as.yearmon("Dec 2019"))
-
 plot(scale(df))
 
 #dygraph(df) %>% dyRangeSelector()

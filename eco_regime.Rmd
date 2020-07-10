@@ -1,12 +1,11 @@
 ---
 title: "Economic Regime Classification"
 output:
-  html_notebook: default
-  word_document: default
+  html_document:
+    df_print: paged
 ---
 
 ```{r include=FALSE}
-library("Rblpapi")
 library("xts")
 library("imputeTS")
 #####classification#####
@@ -39,12 +38,14 @@ indices = c("EHGDUS Index", #US Real GDP (QoQ, %, SAAR)
 
 By ploting all indices from 1914 to 2020, we should notice that the data in 2020 is an **outlier**. For example, the US CPI inflation index became extremely volatile in 2020 and not reflect its long-term trend. The US government reported that the economy lost 20.5 million jobs in April, the deepest drop since the Great Depression. Therefore, it's not rational to include 2020 data in this anlaysis due to the data's abnormality. 
 
-```{r Prepare Data, include=FALSE}
+```{r include=FALSE}
 load("eco_data.RData")
+ym<-as.yearmon(row.names(dat))
+data.xts = xts(dat, order.by = ym)
+plot(data.xts,col=rainbow(ncol(data.xts)))
 ```
 
-```{r}
-plot(data.xts,col=rainbow(ncol(data.xts)))
+```{r echo=FALSE}
 addLegend("bottomleft",col=rainbow(ncol(data.xts)),lty=1,lwd=2)
 ```
 
@@ -59,10 +60,13 @@ df = window(dat1967)
 dygraph(df)
 ```
 
-
+Since the absolute value of some variable like CPI is much greater than else
+In that case, before PCA, in addition to centering each variable,
+we also multiply it times a constant to make its variance equal to 1,
+i.e. we standardize each variable.
 
 ```{r}
-scale(df)
+#scale(df)
 
 
 #dygraph(df) %>% dyRangeSelector()
