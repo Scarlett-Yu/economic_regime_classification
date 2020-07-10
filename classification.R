@@ -24,12 +24,11 @@ data_extract = function(ticker_list){
   dat = bdh(securities=ticker_list, fields=c("PX_LAST"),start.date=StartDate,options=opt)
   datxts <- lapply(dat, function(d) xts(d[,-1], order.by=as.Date(d[,1])))
   res <- do.call(merge, datxts)  
-  colnames(res) <- ticker_list
+  colnames(res) <- names(dat)
   #blpDisconnect()
   res = as.data.frame(res)
   return(res)
 }
-
 dat = data_extract(indices)
 save(dat,file ="eco_data.RData")
 
