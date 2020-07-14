@@ -92,3 +92,42 @@ fviz_nbclust(df2,kmeans,method = "wss")+
 k2 <- kmeans(df2, centers = 4, nstart = 15)
 fviz_cluster(k2, data = df2, palette = "Set2", ggtheme = theme_minimal())
 
+#quarterly
+#PCA
+ep <- endpoints(df,'quarters')
+df.qtr = period.apply(df,INDEX=ep, FUN=mean)
+index(df.qtr) = as.yearqtr(index(df.qtr))
+df.qtr =scale(df.qtr)
+PCdf = prcomp(df.qtr, scale =TRUE)
+#biplot(PCdf , scale =1)
+fviz_pca_ind(PCdf,
+             col.ind = "cos2", # Color by the quality of representation
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+fviz_pca_var(PCdf,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+fviz_pca_biplot(PCdf, repel = TRUE,
+                col.var = "#2E9FDF", # Variables color
+                col.ind = "#696969"  # Individuals color
+)
+###k-means
+
+###Computing k-means clustering
+df2 = as.data.frame(df.qtr[,c(2:7,9)])
+# The plot above represents the variance within the clusters. It decreases as k increases, but it can be seen a bend (or “elbow”) at k = 4. 
+fviz_nbclust(df2,kmeans,method = "wss")+
+  geom_vline(xintercept = 3, linetype = 2)
+
+k2 <- kmeans(df2, centers = 3, nstart = 30)
+fviz_cluster(k2, data = df2, palette = "Set2", ggtheme = theme_minimal())
+
+df.qtr$cluster = k2$cluster
+library("autoplotly")
+autoplotly(PCdf, data = df.qtr,colour="cluster",
+           frame = TRUE)
+summary(PCdf)
+plot(PCdf)
