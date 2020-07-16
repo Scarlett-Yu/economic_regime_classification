@@ -11,16 +11,15 @@ library("Rblpapi")
 library("xts")
 library("imputeTS")
 # ticker names, input value
-indices = c("EHGDUS Index","CPI YOY Index","CPI CHNG Index", "EHUPUS Index","INJCJMOM Index","IP CHNG Index","NHCHSTCH Index","GDP CRCH Index","NFP TCH Index")
+indices = c("EHGDUS Index",	"CPI YOY Index",	"CPI CHNG Index",	"EHUPUS Index",	"IP CHNG Index",	"NHSPATOT Index",	"NFP TCH Index"	,"TMNOCHNG Index",	"LEI TOTL Index",	"PITL YOY Index",	"CICRTOT Index",	"USCABAL Index",	
+            "M2% YOY Index")
 
 # extracted data function
 data_extract = function(ticker_list){
   blpConnect()
   StartDate=as.Date("1914-01-01")
-  opt <- c(
-    #"periodicitySelection"= "MONTHLY",
-           "nonTradingDayFillOption"="ACTIVE_DAYS_ONLY"
-           )  
+  opt <- c("periodicitySelection"= "QUARTERLY",
+           "nonTradingDayFillOption"="ACTIVE_DAYS_ONLY")  
   dat = bdh(securities=ticker_list, fields=c("PX_LAST"),start.date=StartDate,options=opt)
   datxts <- lapply(dat, function(d) xts(d[,-1], order.by=as.Date(d[,1])))
   res <- do.call(merge, datxts)  
