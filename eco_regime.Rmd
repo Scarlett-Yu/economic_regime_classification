@@ -7,7 +7,7 @@ output:
 
 ```{r include=FALSE}
 library("xts")
-library("imputeTS")
+library("readxl")
 #####classification#####
 library(PerformanceAnalytics)
 library(dygraphs)
@@ -17,63 +17,62 @@ library(tidyverse)  # data manipulation
 library(cluster)    # clustering algorithms
 library(factoextra) # clustering algorithms & visualization
 library(dendextend) # for comparing two dendrograms
-```
-
-## 1. Perpare Data
-
-Totally we have 9 indices reflecting US economic market performance in this study. Those indices are listed in the code chunk below, in which you will see the name of each index and what it represent for. 
-```{r}
-indices = c("EHGDUS Index", #US Real GDP (QoQ, %, SAAR)  
-            "CPI YOY Index", #US CPI (inflation) Urban Consumer YoY NSA	
-            "CPI CHNG Index", #US CPI (inflation) Urban Consumer MoM SA	
-            "EHUPUS Index", #US Unemployment Rate (%)
-            "INJCJMOM Index", #US Initial Jobless Claims MoM SA 
-            "IP CHNG Index", #US Industrial Production MoM SA	
-            "NHCHSTCH Index", #Private Housing Units Started Total Monthly % Change, SA	
-            "GDP CRCH Index", #US Nominal GDP (QoQ, %, SAAR)	 
-            "NFP TCH Index" #US Employment on Nonfarm Payrolls Total MoM Net Change (SA, Net Monthly Change, thousands) 
-            )
-```
-
-
-By ploting all indices from 1914 to 2020, we should notice that the data in 2020 is an **outlier**. For example, the US Employment on Nonfarm Payrolls Total MoM Net Change index became extremely volatile in 2020 and not reflect its long-term trend. The US government reported that the economy lost 20.5 million jobs in April, the deepest drop since the Great Depression. Therefore, it's not rational to include 2020 data in this anlaysis due to the data's abnormality. 
-
-```{r include=FALSE}
 load("eco_data.RData")
-ym<-as.yearmon(row.names(dat))
-data.xts = xts(dat, order.by = ym)
-plot(data.xts,col=rainbow(ncol(data.xts)))
+Economic_Regime_Data <- read_excel("Economic Regime Data.xlsx", sheet = "New Data", skip = 1, n_max = 2)
+des = as.vector(t(Economic_Regime_Data[1,-1]))
+# index = as.vector(t(Economic_Regime_Data[2,-1]))
+# ticker names, input value
+indices = c("EHGDUS Index",	"CPI YOY Index",	"CPI CHNG Index",	"EHUPUS Index",	"IP CHNG Index",	"NHSPATOT Index",	"NFP TCH Index"	,"TMNOCHNG Index",	"LEI TOTL Index",	"PITL YOY Index",	"CICRTOT Index",	"USCABAL Index","M2% YOY Index")
+indices_des = cbind(indices, des)
 ```
 
-```{r echo=FALSE}
-addLegend("bottomleft",col=rainbow(ncol(data.xts)),lty=1,lwd=2)
+## 1. Perparing Data
+
+Totally we have totally 13 indices reflecting US economic market performance in this study. Those indices are listed in the code chunk below, in which you will see the name of each index and what it represent for. 
+
+We should notice that the frequency of some series vary from each other. To solve the problem, the frequency of all indices used in this study was chosen as quarterly. Besides, to solve the inconsistency of time length, i.e. different starting time of all indices, I used the subset of series which starts in 1960 Q1 and ends in 2019 Q4, since this series has the largest common length. 
+
+All index series are standardized before we do any statistical analysis, that is, centering each series (makes its mean equal to 0) and multiplying a constant to each series to make its variances equal to 1.
+For example, the value scale of Private Housing Units Permits Total SAAR (thousands) is much greater than else. By standardized the data series, we may ignore how magnificent of its value but the relationship between it and other series. Taking advantages of those internal relationship, we can group economic time periods into different regimes and learn how to make strategies for different economic regimes. 
+
+```{r}
+#remove NA
+dat.all = na.omit(dat) -> df
+dygraph(dat.all, main = "Original Data")%>% dyRangeSelector()
 ```
 
-
-We should also notice that the length of some series started earlier that others and the frequency of some time series are quarterly other than monthly. To solve the inconsistency of time length, I only used data with the longest common history, that is, all data starts in Jan 1967 and ends in Dec 2019. To solve the problem of different frequency, I used the method of linear intepolation to replace the gap in quarterly series by the R package [imputeTS](https://journal.r-project.org/archive/2017/RJ-2017-009/RJ-2017-009.pdf). 
-
-```{r echo=FALSE}
-dat1967 = window(data.xts, start =as.yearmon("Jan 1967"), end=as.yearmon("Dec 2019"))
-#impute data-linear
-dat1967 = na_interpolation(dat1967)
-df = window(dat1967)
-dygraph(df)
+```{r}
+#standardized
+dygraph(scale(dat.all), main = "Standardized Data")%>% dyRangeSelector()
+```
+ 
+```{r}
+indices_des
 ```
 
-
-## Data standardization 
-
-Since the absolute value of some variable like US Employment on Nonfarm Payrolls Total MoM Net Change index is much greater than else. In that case, before doing any statistical analysis, in addition to centering each variable, we also multiply it times a constant to make its variance equal to 1, i.e. we standardize each variable.
-```{r echo=FALSE}
-dygraph(scale(df))%>% dyRangeSelector()
-```
 
 ## Data Correlation
 
-Through looking into the correlation between each pairs of standardized indices, we can detect that some of indices are quiet closely related to each other. For example, US Real GDP index is fairly correlated with US Nominal GDP index. Therefore, we can use some dimension reduction techniques in statistics like PCA.
+Through looking into the correlation between each pairs of standardized indices, we can detect that some of indices are quiet closely related to each other. Since we already have 13 indices 
+Therefore, we can use some dimension reduction techniques in statistics like PCA.
 
-```{r echo=FALSE, fig.height=10, fig.width=10, message=FALSE}
-ggpairs(as.data.frame(scale(df)))+theme_bw()
+```{r}
+df = scale(df)
+cor.matrix = cor(as.data.frame(df))
+cor.pairs = which(cor.matrix>0.4&cor.matrix!=1, arr.ind=TRUE)
+cor.pairs = unique(t(apply(cor.pairs, 1, sort)))
+colnames(cor.pairs) <- c("row", "col")
+for (i in 1:nrow(cor.pairs)) {
+  p = c(cor.pairs[i, "row"], cor.pairs[i, "col"])
+  x = plot(df[,p], main = paste(colnames(cor.matrix)[p], collapse=" vs. "),
+           legend.loc = "topleft",)
+  #addLegend("topleft", colnames(cor.matrix)[p] , col=1:2, lty=1,lwd=2)
+  print(x)
+  #cat("The correlation between", indices_des[p[1],"des"], "and", indices_des[p[2],"des"], "is", 
+  #    round(cor.matrix[p[1],p[2]],3),".\n")
+  cat("The correlation between", paste(colnames(cor.matrix)[p], collapse=" and "), "is", 
+      round(cor.matrix[p[1],p[2]],3),".\n")
+}
 ```
 
 ## Classification 
@@ -85,14 +84,25 @@ Monthly data is too repetitious for PCA, as we aim to looking into different his
 #PCA
 ep <- endpoints(df,'years')
 df.yearly = period.apply(df,INDEX=ep, FUN=mean)
-df.yearly =as.data.frame(scale(df.yearly))
-row.names(df.yearly) = seq(1967, 2019, 1)
+df.yearly = as.data.frame(scale(df.yearly))
+row.names(df.yearly) = format(as.Date(row.names(df.yearly)),"%Y")
 PCdf = prcomp(df.yearly, scale =TRUE)
+
 ```
+
+```{r}
+fviz_contrib(PCdf, choice = "var", axes = 1)
+```
+
+```{r}
+fviz_contrib(PCdf, choice = "var", axes = 1:2)
+```
+
 
 ####  Variable contributions to PC
 
 The plot below shows the contributions of variables in accounting for the variability to the top 2 principal components, that is, the higher contribution (%) of one economic index in this graph, the greater necessity to including this index into our analysis.
+
 ```{r echo=FALSE, warning=FALSE}
 fviz_contrib(PCdf, choice = "var", axes = 1:2, top = 9)
 ```
@@ -100,6 +110,7 @@ fviz_contrib(PCdf, choice = "var", axes = 1:2, top = 9)
 #### Graph of individuals
 
 Individuals with a similar profile are grouped together.
+
 ```{r echo=FALSE, fig.height=9, fig.width=9}
 fviz_pca_ind(PCdf, col.ind = "cos2",
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
@@ -110,6 +121,7 @@ fviz_pca_ind(PCdf, col.ind = "cos2",
 #### Graph of variables
 
 Positive correlated variables point to the same side of the plot. Negative correlated variables point to opposite sides of the graph.
+
 ```{r echo=FALSE}
 fviz_pca_var(PCdf,
              col.var = "contrib", # Color by contributions to the PC
@@ -135,15 +147,15 @@ K-means clustering (MacQueen 1967) is one of the most commonly used unsupervised
 
 ```{r}
 # Using the results of variable contribution by PCA, I removed two least important indices from the original data.
-df2 = as.data.frame(df.yearly[,c(2:7,9)])
+df2 = as.data.frame(df.yearly)[,c(1:3,5,7:10,12:13)]
 # The plot above represents the variance within the clusters. It decreases as k increases, but it can be seen a bend (or “elbow”) at k = 4. 
 fviz_nbclust(df2,kmeans,method = "wss")+
-  geom_vline(xintercept = 4, linetype = 2)
+  geom_vline(xintercept = 5, linetype = 2)
 
-k2 <- kmeans(df2, centers = 4, nstart = 15)
+k2 <- kmeans(df2, centers = 5, nstart = 30)
 fviz_cluster(k2, data = df2, palette = "Set2", ggtheme = theme_minimal())
 ```
 
 ## Conclusion
 
-By the means of PCA and k-means clustering, we can classify the historical years from 1967 to 2019 into 4 different economic regimes. The first regime is compose of 2008, 2009 (global financial crisis), 2001 (Bursting of dot-com bubble – speculations concerning internet companies crashed), and so on. Therefore, this regime of economic scenarios represent financial crisis. Second Regime is pointed by the Private Housing Units Started Total Monthly Change Index, both 1997-1999 and 2012-2014 are located in this regime. This regime indicates economic recovery. Third regime which is indicated by US Initial jobless claims index and two CPI index, represented by 1974 (1973–1974 stock market crash), 1979-1981(Early 1980s recession).  Fourth regime is dominated by the high value of GDP, Employment Payroll, Industrial Production. This regime is represented by 1976-1978, a period of economic expansion. 
+By the means of PCA and k-means clustering, we can classify the historical years from 1967 to 2019 into 5 different economic regimes. Except for 2020, which is an outlier in our case, the first regime is compose of 2008, 2009 (global financial crisis), 2001 (Bursting of dot-com bubble – speculations concerning internet companies crashed), and so on. Therefore, this regime of economic scenarios represent financial crisis. Second Regime is pointed by the Private Housing Units Started Total Monthly Change Index, both 1997-1999 and 2012-2014 are located in this regime. This regime indicates economic recovery. Third regime which is indicated by US Initial jobless claims index and two CPI index, represented by 1974 (1973–1974 stock market crash), 1979-1981(Early 1980s recession).  Fourth regime is dominated by the high value of GDP, Employment Payroll, Industrial Production. This regime is represented by 1976-1978, a period of economic expansion. 
