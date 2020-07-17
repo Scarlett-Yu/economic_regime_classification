@@ -30,8 +30,8 @@ data_extract = function(ticker_list){
 }
 dat = data_extract(indices)
 save(dat,file ="eco_data.RData")
-
-ym<-as.yearmon(row.names(dat))
+#################################################################################################
+ym<-as.yearqtr(as.yearmon(row.names(dat)))
 data.xts = xts(dat, order.by = ym)
 plot(data.xts[,-2],col=rainbow(ncol(data.xts)))
 addLegend("bottomleft",col=rainbow(ncol(data.xts)),lty=1,lwd=2)
