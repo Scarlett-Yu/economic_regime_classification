@@ -25,15 +25,14 @@ data_extract = function(ticker_list){
   res <- do.call(merge, datxts)  
   colnames(res) <- names(dat)
   #blpDisconnect()
-  res = as.data.frame(res)
+  #res = as.data.frame(res)
   return(res)
 }
 dat = data_extract(indices)
 save(dat,file ="eco_data.RData")
 #################################################################################################
-ym<-as.yearqtr(as.yearmon(row.names(dat)))
-data.xts = xts(dat, order.by = ym)
-plot(data.xts[,-2],col=rainbow(ncol(data.xts)))
+dat = xts(dat, order.by = as.yearqtr(row.names(dat)))
+plot(dat,col=rainbow(ncol(dat)))
 addLegend("bottomleft",col=rainbow(ncol(data.xts)),lty=1,lwd=2)
 dat1967 = window(data.xts, start =as.yearmon("Jan 1967"))
 #impute data-linear
