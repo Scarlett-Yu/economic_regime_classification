@@ -25,7 +25,10 @@ data_extract = function(ticker_list){
   res <- do.call(merge, datxts)  
   colnames(res) <- names(dat)
   #blpDisconnect()
+<<<<<<< HEAD
   #res = as.data.frame(res)
+=======
+>>>>>>> b3558e35260d68e974aa3fd7933d1216f54a47fe
   return(res)
 }
 dat = data_extract(indices)
