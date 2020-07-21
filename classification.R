@@ -45,6 +45,7 @@ library(tidyverse)  # data manipulation
 library(cluster)    # clustering algorithms
 library(factoextra) # clustering algorithms & visualization
 library(dendextend) # for comparing two dendrograms
+
 ##################################
 
 #dygraph(df) %>% dyRangeSelector()
@@ -64,6 +65,9 @@ for (i in 1:nrow(cor.pairs)) {
   cat("The correlation between", paste(colnames(cor.matrix)[p], collapse=" and "), "is", 
       round(cor.matrix[p[1],p[2]],3),".\n")
 }
+
+
+
 ########LABEL############
 df.label = as.data.frame(df)
 df.label$label = NULL
@@ -101,17 +105,31 @@ r = index(window(df, start = as.yearqtr(as.yearmon("Feb 2020"))))
 r = as.character(r)
 df.label[r, "label"] = "recession"
 df.label$label[is.na(df.label$label)]<- "other"
-#PCA
+df.label$label = as.factor(df.label$label)
 
+#########################################
+
+#PCA
 ep <- endpoints(df,'years')
 df.yearly = period.apply(df,INDEX=ep, FUN=mean)
-df.yearly = as.data.frame(scale(df.yearly))
+df.yearly = as.data.frame(df.yearly)
 row.names(df.yearly) = format(as.Date(row.names(df.yearly)),"%Y")
+rec = function(x){
+  if(length(which(x=="recession")) > 1){
+    return("recession")
+  }else{
+    return("other")
+  }
+}
+df.yearly.label = as.data.frame(df.yearly)
+df.yearly.label$label = as.factor(period.apply(df.label$label,INDEX=ep, FUN=rec))
+df.yearly.label[nrow(df.yearly.label),]$label <-"recession"
+
+
 PCdf = prcomp(df.yearly, scale =TRUE)
 fviz_contrib(PCdf, choice = "var", axes = 1)
-fviz_contrib(PCdf, choice = "var", axes = 1:2)
+fviz_contrib(PCdf, choice = "var", axes = 2)
 
-biplot(PCdf, scale = 1)
 fviz_pca_ind(PCdf,
              col.ind = "cos2", # Color by the quality of representation
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
@@ -125,75 +143,66 @@ fviz_pca_var(PCdf,
 )
 
 
-fviz_pca_biplot(PCdf, repel = TRUE,
-                col.var = "#2E9FDF", # Variables color
-                col.ind = "#696969"  # Individuals color
+fviz_pca_biplot(PCdf,
+                col.ind = df.yearly.label$label, 
+                palette = c("#00AFBB",  "#FC4E07"),
+                repel = TRUE     # Avoid text overlapping
 )
 
-
-# by removing the least 3 unimportant index and 2020
-df.yearly2 = df.yearly[-nrow(df.yearly),c(1:3, 5, 7:10, 12:13)]#6
+# by removing the least 4 unimportant index and 2020
+colnames(df.yearly)
+df.yearly2.2020 = df.yearly[, !colnames(df.yearly) %in% c("CPI YOY Index", "EHUPUS Index", "M2% YOY Index")]
+df.yearly2 = df.yearly2.2020[-nrow(df.yearly2.2020),]
+#"TMNOCHNG Index"
 PCdf2 = prcomp(df.yearly2, scale = TRUE)
-fviz_contrib(PCdf2, choice = "var", axes = 1)
+summary(PCdf2)
+fviz_contrib(PCdf2, choice = "var", axes = 1:2)
 
-fviz_pca_biplot(PCdf2, repel = TRUE,
-                col.var = "#2E9FDF", # Variables color
-                col.ind = "#696969"  # Individuals color
-)
-
-rec = function(x){
-  if(length(which(x=="recession")) > 1){
-    return("recession")
-  }else{
-    return("other")
-  }
-}
-
-df.yearly.label = as.data.frame(df.yearly)
-df.yearly.label$label = as.factor(period.apply(df.label$label,INDEX=ep, FUN=rec))
-df.yearly.label[nrow(df.yearly.label),]$label <-"recession"
 fviz_pca_biplot(PCdf2,
-             col.ind = df.yearly.label$label[-nrow(df.yearly.label)], 
+             col.ind = df.yearly.label$label[-nrow(df.yearly)], 
              palette = c("#00AFBB",  "#FC4E07"),
              repel = TRUE     # Avoid text overlapping
 )
 ###k-means
 
 ###Computing k-means clustering
-df2 = as.data.frame(df.yearly2)
+df2020 = as.data.frame(df.yearly2.2020)
 set.seed(123)
 # The plot above represents the variance within the clusters. It decreases as k increases, but it can be seen a bend (or “elbow”) at k = 5. 
-fviz_nbclust(df2,kmeans,method = "wss")+
-  geom_vline(xintercept = 5, linetype = 2)
+#fviz_nbclust(df2,kmeans,method = "wss")+geom_vline(xintercept = 5, linetype = 2)
 
-k2 <- kmeans(df2, centers = 4, nstart = 15, iter.max = 100)
-fviz_cluster(k2, data = df2, palette = "Set2", ggtheme = theme_minimal())
+k2 <- kmeans(df2020, centers = 5, nstart = 20, iter.max = 100)
+fviz_cluster(k2, data = df2020, palette = "jco", ggtheme = theme_classic())
+df2019 = as.data.frame(df.yearly2)
+set.seed(123)
+# The plot above represents the variance within the clusters. It decreases as k increases, but it can be seen a bend (or “elbow”) at k = 5. 
+#fviz_nbclust(df2,kmeans,method = "wss")+geom_vline(xintercept = 5, linetype = 2)
+
+k2 <- kmeans(df2019, centers = 4, nstart = 20, iter.max = 100)
+fviz_cluster(k2, data = df2019, palette = "jco", ggtheme = theme_classic())
 
 #quarterly - using original data
 #PCA
-PCdf = prcomp(df[-nrow(df.label),c(1:3, 5, 7:10, 12:13)], scale =TRUE)
-df.label$label = as.factor(df.label$label)
-#biplot(PCdf , scale =1)
-n =nrow(df.label)
-fviz_pca_biplot(PCdf,
-                col.ind = df.label$label[-n], 
+df.qtr = df[, !colnames(df) %in% c("CPI YOY Index","EHUPUS Index", "M2% YOY Index")]
+#df.qtr2019 = df.qtr[-nrow(df), ]
+PCdf.qtr = prcomp(df.qtr, scale =TRUE)
+fviz_contrib(PCdf.qtr, choice = "var", axes = 1:2)
+fviz_pca_biplot(PCdf.qtr,
+                col.ind = df.label$label, 
                 palette = c("#00AFBB",  "#FC4E07"),
-                repel = TRUE     # Avoid text overlapping
-)
+                repel = T)
+
 ###k-means
 
 ###Computing k-means clustering
-df2 = as.data.frame(df.qtr[,c(2:7,9)])
+df2 = as.data.frame(df.qtr)
 # The plot above represents the variance within the clusters. It decreases as k increases, but it can be seen a bend (or “elbow”) at k = 4. 
 fviz_nbclust(df2,kmeans,method = "wss")+
-  geom_vline(xintercept = 3, linetype = 2)
+  geom_vline(xintercept = 5, linetype = 2)
 
-k2 <- kmeans(df2, centers = 3, nstart = 30)
-fviz_cluster(k2, data = df2, palette = "Set2", ggtheme = theme_minimal())
+k2 <- kmeans(df2, centers = 4, nstart = 15)
+fviz_cluster(k2, data = df2, palette = "jco", ggtheme = theme_classic())
 
-df.qtr$cluster = k2$cluster
-library("autoplotly")
-autoplotly(PCdf, data = df.qtr,colour="cluster",
-           frame = TRUE)
-summary(PCdf)
-plot(PCdf)
+res = cbind(k2$cluster,df.label$label)
+res[which(res[,2]==2),1]
+
