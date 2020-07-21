@@ -1,11 +1,6 @@
 ---
 title: "Economic Regime Classification"
-output:
-  html_document:
-    df_print: paged
-    
-fig_width: 10 
-fig_height: 10 
+output: html_document
 ---
 
 ```{r include=FALSE}
@@ -38,18 +33,18 @@ We should notice that the frequency of some series vary from each other. To solv
 All index series are standardized before we do any statistical analysis, that is, centering each series (makes its mean equal to 0) and multiplying a constant to each series to make its variances equal to 1.
 For example, the value scale of Private Housing Units Permits Total SAAR (thousands) is much greater than else. By standardized the data series, we may ignore how magnificent of its value but the relationship between it and other series. Taking advantages of those internal relationship, we can group economic time periods into different regimes and learn how to make strategies for different economic regimes. 
 
-```{r}
+```{r echo=FALSE}
 #remove NA
 dat.all = na.omit(dat) -> df
-dygraph(dat.all, main = "Original Data")%>% dyRangeSelector()
+dygraph(dat.all, main = "Original Data")%>% dyRangeSelector()%>%dyLegend(width = 700)
 ```
 
-```{r}
+```{r echo=FALSE}
 #standardized
-dygraph(scale(dat.all), main = "Standardized Data")%>% dyRangeSelector()
+dygraph(scale(dat.all), main = "Standardized Data")%>% dyRangeSelector()%>%dyLegend(width = 700)
 ```
  
-```{r}
+```{r echo=FALSE}
 indices_des
 ```
 
@@ -59,7 +54,7 @@ indices_des
 Through looking into the correlation between each pairs of standardized indices, we can detect that some of indices are quiet closely related to each other. Since we already have 13 indices 
 Therefore, we can use some dimension reduction techniques in statistics like PCA.
 
-```{r}
+```{r echo=FALSE}
 df = scale(df)
 cor.matrix = cor(as.data.frame(df))
 cor.pairs = which(cor.matrix>0.4&cor.matrix!=1, arr.ind=TRUE)
@@ -77,7 +72,10 @@ for (i in 1:nrow(cor.pairs)) {
       round(cor.matrix[p[1],p[2]],3),".\n")
 }
 ```
-```{r Labelling time periods}
+
+## Labelling 
+
+```{r}
 df.label = as.data.frame(df)
 df.label$label = NULL
 recr = function(start, end){
