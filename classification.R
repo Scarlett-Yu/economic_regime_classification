@@ -206,3 +206,4 @@ fviz_cluster(k2, data = df2, palette = "jco", ggtheme = theme_classic())
 res = cbind(k2$cluster,df.label$label)
 res[which(res[,2]==2),1]
 
+

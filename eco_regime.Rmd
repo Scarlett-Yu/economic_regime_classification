@@ -33,19 +33,22 @@ We should notice that the frequency of some series vary from each other. To solv
 All index series are standardized before we do any statistical analysis, that is, centering each series (makes its mean equal to 0) and multiplying a constant to each series to make its variances equal to 1.
 For example, the value scale of Private Housing Units Permits Total SAAR (thousands) is much greater than else. By standardized the data series, we may ignore how magnificent of its value but the relationship between it and other series. Taking advantages of those internal relationship, we can group economic time periods into different regimes and learn how to make strategies for different economic regimes. 
 
-```{r echo=FALSE}
+```{r echo=FALSE, fig.height=8, fig.width=10}
 #remove NA
 dat.all = na.omit(dat) -> df
-dygraph(dat.all, main = "Original Data")%>% dyRangeSelector()%>%dyLegend(width = 700)
+
+plot(ts(dat[,1:6], start = c(1914, 1), frequency = 4), main = "",yax.flip=T)
+plot(ts(dat[,7:13], start = c(1914, 1), frequency = 4), main = "",yax.flip=T)
+
 ```
 
 ```{r echo=FALSE}
 #standardized
-dygraph(scale(dat.all), main = "Standardized Data")%>% dyRangeSelector()%>%dyLegend(width = 700)
+plot(ts(scale(dat), start = c(1914, 1), frequency = 4), main = "", col =rainbow(ncol(dat)), plot.type = "single", ylab="index value")
 ```
  
 ```{r echo=FALSE}
-indices_des
+knitr::kable(indices_des, "html", col.names = c("Index", "Description"))
 ```
 
 
