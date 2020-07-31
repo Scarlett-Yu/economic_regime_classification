@@ -1,0 +1,293 @@
+---
+title: "Economic Regime Classification"
+author: "Yijia Yu"
+date: "30/07/2020"
+output: slidy_presentation
+---
+
+```{r include=FALSE}
+library("xts")
+library("readxl")
+#####classification#####
+library(PerformanceAnalytics)
+library(dygraphs)
+library(GGally)
+#####k-means#####
+library(tidyverse)  # data manipulation
+library(cluster)    # clustering algorithms
+library(factoextra) # clustering algorithms & visualization
+library(dendextend) # for comparing two dendrograms
+load("eco_data.RData")
+Economic_Regime_Data <- read_excel("Economic Regime Data.xlsx", sheet = "New Data", skip = 1, n_max = 2)
+des = as.vector(t(Economic_Regime_Data[1,-1]))
+# index = as.vector(t(Economic_Regime_Data[2,-1]))
+# ticker names, input value
+indices = c("EHGDUS Index",	"CPI YOY Index",	"CPI CHNG Index",	"EHUPUS Index",	"IP CHNG Index",	"NHSPATOT Index",	"NFP TCH Index"	,"TMNOCHNG Index",	"LEI TOTL Index",	"PITL YOY Index",	"CICRTOT Index",	"USCABAL Index","M2% YOY Index")
+indices_des = cbind(indices, des)
+```
+
+## Economic Indices
+
+Totally we have totally 13 indices reflecting US economic market performance in this study. Those indices are listed in the table below, in which you will see the name of each index and what it represent for. 
+
+```{r echo=FALSE}
+knitr::kable(indices_des, "html", col.names = c("Index", "Description"))
+```
+
+
+## Preparing Data
+
+Since the original data are mixed-frequency time series. To solve this problem, the frequency of all indices used in this study was chosen as quarterly. Besides, to solve the inconsistency of time length, i.e. different starting time of all indices, I used the subset series of the longest common length which starts in 1960 Q1 and ends in 2020 Q1. 
+
+```{r echo=FALSE, fig.height=8, fig.width=10}
+#remove NA
+dat.all = na.omit(dat) -> df
+
+plot(ts(dat[,1:6], start = c(1914, 1), frequency = 4), main = "", yax.flip=T)
+plot(ts(dat[,7:13], start = c(1914, 1), frequency = 4), main = "", yax.flip=T)
+
+```
+
+
+## Preparing Data
+
+All index series are standardized before we do any statistical analysis, that is, centering each series (makes its mean equal to 0) and multiplying a constant to each series to make its variances equal to 1.
+For example, the value scale of Private Housing Units Permits Total SAAR (thousands) is much greater than else. By standardized the data series, we may ignore how magnificent of its value but the relationship between it and other series. Taking advantages of those internal relationship, we can group economic time periods into different regimes and learn how to make strategies for different economic regimes. 
+
+```{r echo=FALSE}
+#standardized
+plot(ts(scale(dat), start = c(1914, 1), frequency = 4), main = "", col =rainbow(ncol(dat)), plot.type = "single", ylab="index value")
+```
+ 
+
+
+## Data Correlation
+
+Through looking into the correlation between each pairs of standardized indices, we can detect that some of indices are closely correlated with each other. Since we already have 13 indices 
+Therefore, we can use some dimension reduction techniques in statistics like PCA.
+
+```{r echo=FALSE}
+df = scale(df)
+cor.matrix = cor(as.data.frame(df))
+cor.pairs = which(cor.matrix>0.4&cor.matrix!=1, arr.ind=TRUE)
+cor.pairs = unique(t(apply(cor.pairs, 1, sort)))
+colnames(cor.pairs) <- c("row", "col")
+for (i in 1:nrow(cor.pairs)) {
+  p = c(cor.pairs[i, "row"], cor.pairs[i, "col"])
+  x = plot(df[,p], main = paste(colnames(cor.matrix)[p], collapse=" vs. "),
+           legend.loc = "topleft",)
+  #addLegend("topleft", colnames(cor.matrix)[p] , col=1:2, lty=1,lwd=2)
+  
+  cat("The correlation between", indices_des[p[1],"des"],"and \n", indices_des[p[2],"des"], "is", 
+      round(cor.matrix[p[1],p[2]],3),".\n")
+  #cat("The correlation between", paste(colnames(cor.matrix)[p], collapse=" and "), "is", 
+  #    round(cor.matrix[p[1],p[2]],3),".\n")
+  print(x)
+}
+```
+
+## Labelling 
+
+According to [List of recessions in the US](https://en.wikipedia.org/wiki/List_of_recessions_in_the_United_States), all quarters involved in the listed US financial recession periods were labeled as "recession".
+
+According to [List of expansions in the US](https://en.wikipedia.org/wiki/List_of_economic_expansions_in_the_United_States), all quarters involved in the listed US financial expansion periods were labeled as "expansion".
+
+```{r include=FALSE}
+df.label = as.data.frame(df)
+df.label$label = NULL
+recr = function(start, end){
+  r = index(window(df, start = as.yearqtr(as.yearmon(start)), end = as.yearqtr(as.yearmon(end))))
+  r = as.character(r)
+  return(r)
+}
+#economic expansions
+start_exp = c("Apr 1958" ,"Feb 1961", "Nov 1970", "Mar 1975", "Jul 1980", "Dec 1982", "Mar 1991", "Nov 2001", "Jun 2009")
+end_exp =   c("Apr 1960" ,"Dec 1969", "Nov 1973", "Jan 1980", "Jul 1981", "Jul 1990", "Mar 2001", "Dec 2007", "Feb 2020")
+for(i in 1:length(start_exp)){
+  r = recr(start = start_exp[i], end = end_exp[i])
+  df.label[r, "label"] = "expansion"
+}
+#Recession of 1960–61: Another primarily monetary recession occurred after the Federal Reserve began raising interest rates in 1959. The government switched from deficit (or 2.6% in 1959) to surplus (of 0.1% in 1960). When the economy emerged from this short recession, it began the second-longest period of growth in NBER history. The Dow Jones Industrial Average (Dow) finally reached its lowest point on February 20, 1961, about 4 weeks after President Kennedy was inaugurated.
+r = recr(start = "Apr 1960", end = "Feb 1961")
+df.label[r, "label"] = "recession"
+#The relatively mild 1969 recession followed a lengthy expansion. At the end of the expansion, inflation was rising, possibly a result of increased deficits. This relatively mild recession coincided with an attempt to start closing the budget deficits of the Vietnam War (fiscal tightening) and the Federal Reserve raising interest rates (monetary tightening).
+r = recr(start = "Dec 1969", end = "Nov 1970")
+df.label[r, "label"] = "recession"
+#The 1973 oil crisis, a quadrupling of oil prices by OPEC, coupled with the 1973–1974 stock market crash led to a stagflation recession in the United States.
+r = recr(start = "Nov 1973", end = "Mar 1975")
+df.label[r, "label"] = "recession"
+#The NBER considers a very short recession to have occurred in 1980, followed by a short period of growth and then a deep recession. Unemployment remained relatively elevated in between recessions. The recession began as the Federal Reserve, under Paul Volcker, raised interest rates dramatically to fight the inflation of the 1970s. The early 1980s are sometimes referred to as a "double-dip" or "W-shaped" recession.
+r = recr(start = "Jan 1980", end = "Jul 1980")
+df.label[r, "label"] = "recession"
+#The Iranian Revolution sharply increased the price of oil around the world in 1979, causing the 1979 energy crisis. This was caused by the new regime in power in Iran, which exported oil at inconsistent intervals and at a lower volume, forcing prices up. Tight monetary policy in the United States to control inflation led to another recession. The changes were made largely because of inflation carried over from the previous decade because of the 1973 oil crisis and the 1979 energy crisis.
+r = recr(start = "Jul 1981", end = "Nov 1982")
+df.label[r, "label"] = "recession"
+#	After the lengthy peacetime expansion of the 1980s, inflation began to increase and the Federal Reserve responded by raising interest rates from 1986 to 1989. This weakened but did not stop growth, but some combination of the subsequent 1990 oil price shock, the debt accumulation of the 1980s, and growing consumer pessimism combined with the weakened economy to produce a brief recession.
+r = recr(start = "Jul 1990", end = "Mar 1991")
+df.label[r, "label"] = "recession"
+#The 1990s once were the longest period of growth in American history. The collapse of the speculative dot-com bubble, a fall in business outlays and investments, and the September 11th attacks, brought the decade of growth to an end. Despite these major shocks, the recession was brief and shallow.
+r = recr(start = "Mar 2001", end = "Nov 2001")
+df.label[r, "label"] = "recession"
+#The subprime mortgage crisis led to the collapse of the United States housing bubble. Falling housing-related assets contributed to a global financial crisis, even as oil and food prices soared. The crisis led to the failure or collapse of many of the United States' largest financial institutions: Bear Stearns, Fannie Mae, Freddie Mac, Lehman Brothers, and AIG, as well as a crisis in the automobile industry. The government responded with an unprecedented $700 billion bank bailout and $787 billion fiscal stimulus package. The National Bureau of Economic Research declared the end of this recession over a year after the end date.[78] The Dow Jones Industrial Average (Dow) finally reached its lowest point on March 9, 2009.
+r = recr(start = "Dec 2007", end = "Jun 2009")
+df.label[r, "label"] = "recession"
+#The first documented case of COVID-19 emerged in Wuhan, China in November 2019. The government in China first instituted travel restrictions, quarantines and stay-at-home orders. When efforts to contain the virus in China were unsuccessful, other countries instituted similar measures in an attempt to contain and slow the spread of the virus, which prompted many cities to close. The initial outbreak expanded into a global pandemic. The economic effects of the pandemic were severe. More than 24 million people lost jobs in the United States in just three weeks.[81] Official economic impact of the virus is still being determined but the stock market responded negatively to the shock to supply chains, primarily in technology industries.
+r = index(window(df, start = as.yearqtr(as.yearmon("Feb 2020"))))
+r = as.character(r)
+df.label[r, "label"] = "recession"
+df.label$label[is.na(df.label$label)]<- "other"
+df.label$label = as.factor(df.label$label)
+
+```
+
+
+
+
+
+
+## Principle Component Analaysis (PCA)
+
+Monthly data is too repetitious for PCA, as we aim to looking into different historic economic regimes rather than a specific month. 
+```{r include=FALSE}
+#PCA
+ep <- endpoints(df,'years')
+df.yearly = period.apply(df,INDEX=ep, FUN=mean)
+df.yearly = as.data.frame(df.yearly)
+row.names(df.yearly) = format(as.Date(row.names(df.yearly)),"%Y")
+rec = function(x){
+  if(length(which(x=="recession")) > length(which(x=="expansion"))){
+    return("recession")
+  }
+  else if(length(which(x=="recession")) < length(which(x=="expansion"))){
+    return("expansion")
+  }
+  else{
+    return("other")
+  }
+}
+df.yearly.label = as.data.frame(df.yearly)
+df.yearly.label$label = as.factor(period.apply(df.label$label,INDEX=ep, FUN=rec))
+df.yearly.label[nrow(df.yearly.label),]$label <-"recession"
+PCdf = prcomp(df.yearly, scale =TRUE)
+```
+
+
+##  Variable contributions to PC
+
+The plot below shows the contributions of variables in accounting for the variability to the top 2 principal components, that is, the higher contribution (%) of one economic index in this graph, the greater necessity to including this index into our analysis. 
+
+```{r echo=FALSE, warning=FALSE}
+fviz_contrib(PCdf, choice = "var", axes = 1:2)
+```
+
+Some highly correlated indices result trivial variables which do not contribute variance to first two principle components. 
+
+
+## Graph of individuals
+
+Individuals with a similar profile are grouped together.
+
+```{r echo=FALSE, fig.height=8, fig.width=8}
+fviz_pca_ind(PCdf, col.ind = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Avoid text overlapping (slow if many points)
+             )
+```
+
+## Graph of variables
+
+Positive correlated variables point to the same side of the plot. Negative correlated variables point to opposite sides of the graph.
+
+```{r echo=FALSE, fig.height=8, fig.width=8}
+fviz_pca_var(PCdf,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+```
+
+## Biplot of both individuals and variables
+
+```{r echo=FALSE, fig.height=8, fig.width=8}
+fviz_pca_biplot(PCdf,
+                col.ind = df.yearly.label$label, 
+                palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+                repel = TRUE     # Avoid text overlapping
+)
+```
+
+How about removing those redundant variables? 
+
+```{r echo=FALSE}
+# by removing the least 4 unimportant indices
+df.yearly2.2020 = df.yearly[, !colnames(df.yearly) %in% c("CPI YOY Index", "EHUPUS Index", "M2% YOY Index")]
+PCdf2 = prcomp(df.yearly2.2020, scale = TRUE)
+fviz_contrib(PCdf2, choice = "var", axes = 1:2)
+```
+
+
+```{r echo=FALSE, fig.height=8, fig.width=8}
+fviz_pca_biplot(PCdf2,
+             col.ind = df.yearly.label$label, 
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE   
+)
+```
+
+2020 is extremely unusual, far away from any previous annual index performance.
+How about removing the data of 2020?
+
+```{r echo=FALSE, fig.height=8, fig.width=8}
+df.yearly2 = df.yearly2.2020[-nrow(df.yearly2.2020),]
+PCdf2 = prcomp(df.yearly2, scale = TRUE)
+fviz_pca_biplot(PCdf2,
+             col.ind = df.yearly.label$label[-nrow(df.yearly)], 
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+```
+Now, our data become more dispersive.
+
+## Alternative way: K-means
+
+K-means clustering (MacQueen 1967) is one of the most commonly used unsupervised machine learning algorithm for partitioning a given data set into a set of k groups (i.e. k clusters), where k represents the number of groups pre-specified by the analyst. It classifies objects in multiple groups (i.e., clusters), such that objects within the same cluster are as similar as possible (i.e., high intra-class similarity), whereas objects from different clusters are as dissimilar as possible (i.e., low inter-class similarity).
+
+```{r echo=FALSE}
+###Computing k-means clustering
+set.seed(3456)
+df2020 = as.data.frame(df.yearly2.2020)
+k2 <- kmeans(df2020, centers = 5, nstart = 20, iter.max = 100)
+fviz_cluster(k2, data = df2020, palette = "jco", ggtheme = theme_classic())
+
+df2019 = as.data.frame(df.yearly2)
+k2 <- kmeans(df2019, centers = 4, nstart = 20, iter.max = 100)
+fviz_cluster(k2, data = df2019, palette = "jco", ggtheme = theme_classic())
+```
+
+## Quarterly Data Analysis
+
+Now, we repeated the analysis using quarterly data
+
+```{r echo=FALSE}
+#quarterly - using original data
+#PCA
+df.qtr = df[, !colnames(df) %in% c("CPI YOY Index","EHUPUS Index", "M2% YOY Index")]
+#df.qtr2019 = df.qtr[-nrow(df), ]
+PCdf.qtr = prcomp(df.qtr, scale =TRUE)
+fviz_contrib(PCdf.qtr, choice = "var", axes = 1:2)
+```
+
+```{r echo=FALSE, fig.height=10, fig.width=10}
+fviz_pca_biplot(PCdf.qtr,
+                col.ind = df.label$label, 
+                palette = c("#00AFBB", "#FC4E07", "#E7B800"),
+                repel = T)
+```
+
+```{r echo=FALSE, fig.height=9, fig.width=9}
+###Computing k-means clustering
+df2 = as.data.frame(df.qtr)
+k2 <- kmeans(df2, centers = 4, nstart = 15)
+fviz_cluster(k2, data = df2, palette = "jco", ggtheme = theme_classic())
+```
+
