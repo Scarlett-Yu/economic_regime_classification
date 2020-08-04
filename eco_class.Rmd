@@ -242,7 +242,7 @@ The score of 2020 is very unusual, far away from scores of all previous data.
 
 ## Removing 2020
 
-After removing 2020, the data become more dispersed in the panel.
+After removing 2020, the data become more dispersed in the panel. But some highly correlated variables are clustering together, giving bad classification result.
 
 ```{r echo=FALSE, fig.height=8, fig.width=8}
 df.yearly2 = df.yearly[-nrow(df.yearly),]
@@ -254,16 +254,19 @@ fviz_pca_biplot(PCdf2,
 )
 ```
 
+After removing the least 3 contributing variables, the results become more reasonable.
 
 ```{r echo=FALSE, fig.height=8, fig.width=8}
-df.yearly2.2019 = df.yearly2[, !colnames(df.yearly2) %in% c("CPI YOY Index", "EHUPUS Index", "M2% YOY Index")]
+df.yearly2.2019 = df.yearly2[, !colnames(df.yearly2) %in% c("CPI YOY Index"
+                                                            , "EHUPUS Index"
+                                                            , "M2% YOY Index"
+                                                            )]
 PCdf2 = prcomp(df.yearly2.2019, scale = TRUE)
 fviz_pca_biplot(PCdf2,
              col.ind = df.yearly.label$label[-nrow(df.yearly)], 
              palette = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE   
 )
-df.yearly2.2020 = df.yearly
 ```
 
 
@@ -272,13 +275,14 @@ df.yearly2.2020 = df.yearly
 K-means clustering (MacQueen 1967) is one of the most commonly used unsupervised machine learning algorithm for partitioning a given data set into a set of k groups (i.e. k clusters), where k represents the number of groups pre-specified by the analyst. It classifies objects in multiple groups (i.e., clusters), such that objects within the same cluster are as similar as possible (i.e., high intra-class similarity), whereas objects from different clusters are as dissimilar as possible (i.e., low inter-class similarity).
 
 ```{r echo=FALSE}
+df.yearly2.2020 = df.yearly[, !colnames(df.yearly) %in% c("CPI YOY Index", "EHUPUS Index", "M2% YOY Index")]
 ###Computing k-means clustering
 set.seed(3456)
 df2020 = as.data.frame(df.yearly2.2020)
 k2 <- kmeans(df2020, centers = 5, nstart = 20, iter.max = 100)
 fviz_cluster(k2, data = df2020, palette = "jco", ggtheme = theme_classic())
 
-df2019 = as.data.frame(df.yearly2)
+df2019 = as.data.frame(df.yearly2.2019)
 k2 <- kmeans(df2019, centers = 4, nstart = 20, iter.max = 100)
 fviz_cluster(k2, data = df2019, palette = "jco", ggtheme = theme_classic())
 ```
@@ -316,12 +320,11 @@ fviz_cluster(k2, data = df2, palette = "jco", ggtheme = theme_classic())
     + The first quarter of 2020 is relatively closed with 2009 Q1, 2008 Q3-Q4, 1947 Q4
 
 ```{r echo=FALSE, fig.height=8, fig.width=8}
-df.yearly2 = df.yearly2.2020[-nrow(df.yearly2.2020),]
-PCdf2 = prcomp(df.yearly2, scale = TRUE)
+PCdf2 = prcomp(df.yearly2.2019, scale = TRUE)
 fviz_pca_biplot(PCdf2,
              col.ind = df.yearly.label$label[-nrow(df.yearly)], 
              palette = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE     # Avoid text overlapping
+             repel = TRUE   
 )
 ```
 2. PCA divided the data into four economic regimes:
