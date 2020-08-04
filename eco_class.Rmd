@@ -5,7 +5,7 @@ date: "30/07/2020"
 output: slidy_presentation
 ---
 
-## Introdution
+## Introduction
 
 1. No single asset allocation is resilient to all economic regimes. Different economic regimes call for different asset allocations.
 
@@ -13,7 +13,7 @@ output: slidy_presentation
 
 3. Adopting a regime-based asset allocation policy within an overall strategic portfolio may significantly enhance the portfolio's efficiency.
 
-4. Developing and implementing a regime-based allocation policy doesn't require perfect forecasting skills, since anticipating the direction of regime change matters matters more than predicting the absolute rate of change in the 4 factors.
+4. Developing and implementing a regime-based allocation policy doesn't require perfect forecasting skills, since anticipating the direction of regime change matters more than predicting the absolute rate of change in the 4 factors.
 
 
 ## Introduction
@@ -238,29 +238,14 @@ fviz_pca_biplot(PCdf,
 )
 ```
 
-How about removing those redundant variables? 
+The score of 2020 is very unusual, far away from scores of all previous data. 
 
-```{r echo=FALSE}
-# by removing the least 4 unimportant indices
-df.yearly2.2020 = df.yearly[, !colnames(df.yearly) %in% c("CPI YOY Index", "EHUPUS Index", "M2% YOY Index")]
-PCdf2 = prcomp(df.yearly2.2020, scale = TRUE)
-fviz_contrib(PCdf2, choice = "var", axes = 1:2)
-```
+## Removing 2020
 
+After removing 2020, the data become more dispersed in the panel.
 
 ```{r echo=FALSE, fig.height=8, fig.width=8}
-fviz_pca_biplot(PCdf2,
-             col.ind = df.yearly.label$label, 
-             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE   
-)
-```
-
-2020 is extremely unusual, far away from any previous annual index performance.
-How about removing the data of 2020?
-
-```{r echo=FALSE, fig.height=8, fig.width=8}
-df.yearly2 = df.yearly2.2020[-nrow(df.yearly2.2020),]
+df.yearly2 = df.yearly[-nrow(df.yearly),]
 PCdf2 = prcomp(df.yearly2, scale = TRUE)
 fviz_pca_biplot(PCdf2,
              col.ind = df.yearly.label$label[-nrow(df.yearly)], 
@@ -268,7 +253,19 @@ fviz_pca_biplot(PCdf2,
              repel = TRUE     # Avoid text overlapping
 )
 ```
-Now, our data become more dispersive.
+
+
+```{r echo=FALSE, fig.height=8, fig.width=8}
+df.yearly2.2019 = df.yearly2[, !colnames(df.yearly2) %in% c("CPI YOY Index", "EHUPUS Index", "M2% YOY Index")]
+PCdf2 = prcomp(df.yearly2.2019, scale = TRUE)
+fviz_pca_biplot(PCdf2,
+             col.ind = df.yearly.label$label[-nrow(df.yearly)], 
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE   
+)
+df.yearly2.2020 = df.yearly
+```
+
 
 ## Alternative way: K-means
 
@@ -315,8 +312,20 @@ fviz_cluster(k2, data = df2, palette = "jco", ggtheme = theme_classic())
 
 ## Conclusion
 
-- 2020 (Covid-19 recession) is a new class of economic regime, the scale of which is unprecedented.
+1. 2020 (Covid-19 recession) is a new class of economic regime, the scale of which is unprecedented.
+    + The first quarter of 2020 is relatively closed with 2009 Q1, 2008 Q3-Q4, 1947 Q4
 
-- The first quarter of 2020 is relatively closed with 2009 Q1, 2008 Q3-Q4, 1947 Q4
-
+```{r echo=FALSE, fig.height=8, fig.width=8}
+df.yearly2 = df.yearly2.2020[-nrow(df.yearly2.2020),]
+PCdf2 = prcomp(df.yearly2, scale = TRUE)
+fviz_pca_biplot(PCdf2,
+             col.ind = df.yearly.label$label[-nrow(df.yearly)], 
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+```
+2. PCA divided the data into four economic regimes:
+    + recession : 2008, 2009, 2001, 1982, 1974..
+    + stagnation (slow economic growth):  2011-2019
+    + 
 
