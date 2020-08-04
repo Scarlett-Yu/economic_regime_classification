@@ -5,6 +5,25 @@ date: "30/07/2020"
 output: slidy_presentation
 ---
 
+## Introdution
+
+1. No single asset allocation is resilient to all economic regimes. Different economic regimes call for different asset allocations.
+
+2. Economic regimes or scenarios (recession, expansion, etc.) can be defined in terms of 4 key economic factors: economic growth, inflationary expectations, monetary policy, and unemployment rate.
+
+3. Adopting a regime-based asset allocation policy within an overall strategic portfolio may significantly enhance the portfolio's efficiency.
+
+4. Developing and implementing a regime-based allocation policy doesn't require perfect forecasting skills, since anticipating the direction of regime change matters matters more than predicting the absolute rate of change in the 4 factors.
+
+
+## Introduction
+
+In this study, I used two unsupervised learning methods, principle component analysis (PCA) and k-means clustering to classify the historical data from 1960 to 2020 into different economic regimes.
+
+- PCA: deriving the a low-dimensional set of features from a large set of variables.
+
+- K-means: partitioning a data set into k distinct, non-overlapping clusters. 
+
 ```{r include=FALSE}
 library("xts")
 library("readxl")
@@ -28,7 +47,7 @@ indices_des = cbind(indices, des)
 
 ## Economic Indices
 
-Totally we have totally 13 indices reflecting US economic market performance in this study. Those indices are listed in the table below, in which you will see the name of each index and what it represent for. 
+There are 13 indices reflecting US economic market performance used in this study. Those indices are listed in the table below, in which you will see the name of each index and what it represent for. 
 
 ```{r echo=FALSE}
 knitr::kable(indices_des, "html", col.names = c("Index", "Description"))
@@ -185,7 +204,10 @@ Some highly correlated indices result trivial variables which do not contribute 
 
 ## Graph of individuals
 
-Individuals with a similar profile are grouped together.
+This plot displays the annually data which is projected onto the plane given by the first two PC score vectors. 
+
+Individuals with a similar profile are grouped together. Points with a higher cos2 (square cosine, the quality of representation of the PC ) are far away from the center.
+
 
 ```{r echo=FALSE, fig.height=8, fig.width=8}
 fviz_pca_ind(PCdf, col.ind = "cos2",
@@ -290,4 +312,11 @@ df2 = as.data.frame(df.qtr)
 k2 <- kmeans(df2, centers = 4, nstart = 15)
 fviz_cluster(k2, data = df2, palette = "jco", ggtheme = theme_classic())
 ```
+
+## Conclusion
+
+- 2020 (Covid-19 recession) is a new class of economic regime, the scale of which is unprecedented.
+
+- The first quarter of 2020 is relatively closed with 2009 Q1, 2008 Q3-Q4, 1947 Q4
+
 
