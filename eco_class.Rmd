@@ -1,7 +1,7 @@
 ---
 title: "Economic Regimes Classification"
 author: "Yijia Yu"
-date: "05/08/2020"
+date: "08/05/2020"
 output: slidy_presentation
 ---
 
@@ -226,6 +226,8 @@ fviz_pca_var(PCdf,
 ```
 
 ## Biplot of both individuals and variables
+
+Yearly data was labeled as recession/expansion if there is more than two quarters in the year labeled as recession/expansion. If there are exactly two quarters of recession and two quarters of expansion in a year, then it will be grouped in 'other'.
 
 ```{r echo=FALSE, fig.height=8, fig.width=8}
 fviz_pca_biplot(PCdf,
