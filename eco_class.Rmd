@@ -1,5 +1,5 @@
 ---
-title: "Economic Regime Classification"
+title: "Economic Regimes Classification"
 author: "Yijia Yu"
 date: "30/07/2020"
 output: slidy_presentation
@@ -20,7 +20,7 @@ output: slidy_presentation
 
 In this study, I used two unsupervised learning methods, principle component analysis (PCA) and k-means clustering to classify the historical data from 1960 to 2020 into different economic regimes.
 
-- PCA: deriving the a low-dimensional set of features from a large set of variables.
+- PCA: deriving a low-dimensional set of features from a large set of variables.
 
 - K-means: partitioning a data set into k distinct, non-overlapping clusters. 
 
@@ -70,8 +70,7 @@ plot(ts(dat[,7:13], start = c(1914, 1), frequency = 4), main = "", yax.flip=T)
 
 ## Preparing Data
 
-All index series are standardized before we do any statistical analysis, that is, centering each series (makes its mean equal to 0) and multiplying a constant to each series to make its variances equal to 1.
-For example, the value scale of Private Housing Units Permits Total SAAR (thousands) is much greater than else. By standardized the data series, we may ignore how magnificent of its value but the relationship between it and other series. Taking advantages of those internal relationship, we can group economic time periods into different regimes and learn how to make strategies for different economic regimes. 
+All index series are standardized, that is, centering each series (makes its mean equal to 0) and multiplying a constant to each series to make its variances equal to 1. By the data standardization, we may ignore the absolute value of a single series, but focus on the internal relationship within those economic indices.
 
 ```{r echo=FALSE}
 #standardized
@@ -82,23 +81,22 @@ plot(ts(scale(dat), start = c(1914, 1), frequency = 4), main = "", col =rainbow(
 
 ## Data Correlation
 
-Through looking into the correlation between each pairs of standardized indices, we can detect that some of indices are closely correlated with each other. Since we already have 13 indices 
-Therefore, we can use some dimension reduction techniques in statistics like PCA.
-
+Some of economic indices are closely correlated with each other. 
 ```{r echo=FALSE}
 df = scale(df)
 cor.matrix = cor(as.data.frame(df))
 cor.pairs = which(cor.matrix>0.4&cor.matrix!=1, arr.ind=TRUE)
 cor.pairs = unique(t(apply(cor.pairs, 1, sort)))
 colnames(cor.pairs) <- c("row", "col")
+nam = colnames(cor.matrix)
 for (i in 1:nrow(cor.pairs)) {
   p = c(cor.pairs[i, "row"], cor.pairs[i, "col"])
+  po = nam[p]
   x = plot(df[,p], main = paste(colnames(cor.matrix)[p], collapse=" vs. "),
-           legend.loc = "topleft",)
+           legend.loc = "topleft")
   #addLegend("topleft", colnames(cor.matrix)[p] , col=1:2, lty=1,lwd=2)
   
-  cat("The correlation between", indices_des[p[1],"des"],"and \n", indices_des[p[2],"des"], "is", 
-      round(cor.matrix[p[1],p[2]],3),".\n")
+  cat("The correlation between", indices_des[which(indices_des[,1]== po[1]),"des"],"and \n", indices_des[which(indices_des[,1]== po[2]),"des"], "is",  round(cor.matrix[p[1],p[2]],3),".\n")
   #cat("The correlation between", paste(colnames(cor.matrix)[p], collapse=" and "), "is", 
   #    round(cor.matrix[p[1],p[2]],3),".\n")
   print(x)
@@ -166,7 +164,6 @@ df.label$label = as.factor(df.label$label)
 
 ## Principle Component Analaysis (PCA)
 
-Monthly data is too repetitious for PCA, as we aim to looking into different historic economic regimes rather than a specific month. 
 ```{r include=FALSE}
 #PCA
 ep <- endpoints(df,'years')
@@ -191,7 +188,7 @@ PCdf = prcomp(df.yearly, scale =TRUE)
 ```
 
 
-##  Variable contributions to PC
+- Variable contributions to PC
 
 The plot below shows the contributions of variables in accounting for the variability to the top 2 principal components, that is, the higher contribution (%) of one economic index in this graph, the greater necessity to including this index into our analysis. 
 
@@ -317,9 +314,10 @@ fviz_cluster(k2, data = df2, palette = "jco", ggtheme = theme_classic())
 ## Conclusion
 
 1. 2020 (Covid-19 recession) is a new class of economic regime, the scale of which is unprecedented.
-    + The first quarter of 2020 is relatively closed with 2009 Q1, 2008 Q3-Q4, 1947 Q4
+    + The first quarter of 2020 is relatively closed with 2009 Q1, 2008 Q3-Q4, 1974 Q4
 
 ```{r echo=FALSE, fig.height=8, fig.width=8}
+colnames(df.yearly2.2019) <- c("GDP", "LEI", "CPI", "Personal Income", "Consumer Credit", "Industrial Production", "Account Balance", "Private housing", "Employment payrolls","Manufacturing new order")
 PCdf2 = prcomp(df.yearly2.2019, scale = TRUE)
 fviz_pca_biplot(PCdf2,
              col.ind = df.yearly.label$label[-nrow(df.yearly)], 
@@ -327,8 +325,20 @@ fviz_pca_biplot(PCdf2,
              repel = TRUE   
 )
 ```
+
 2. PCA divided the data into four economic regimes:
-    + recession : 2008, 2009, 2001, 1982, 1974..
+    + recession : 2008, 2009, 2001, 1982, 1974, 1960...
+    + strong economic expansion: 1983-1989
     + stagnation (slow economic growth):  2011-2019
-    + 
+    + moderate recovery: 1961-1969 
+    
+3. The results of K-means is similar to PCA, however, PCA is a better approach since it measured the scales for each observation in all PC loading vectors.
+
+## Future Work
+
+- Find more representative economic indicators other than the 13 economic indices used in the study, while continue removing redundant variables.
+- Assign different asset allocation strategy to each economic regime, and backtest the portfolio allocation strategy. 
+- In terms of long-term forecasting, we can consider modeling the long-term trend on each economic indicator. Then the long-term economic regime can be predicted once we know the direction of economic indicators.
+- More advanced machine learning approaches can be applied. e.g. Kernel PCA; Sparse PCA, Independent Component Analysis, Multidimensional Scaling and so on
+
 
