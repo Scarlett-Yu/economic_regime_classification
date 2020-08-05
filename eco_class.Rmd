@@ -85,7 +85,7 @@ Some of economic indices are closely correlated with each other.
 ```{r echo=FALSE}
 df = scale(df)
 cor.matrix = cor(as.data.frame(df))
-cor.pairs = which(cor.matrix>0.4&cor.matrix!=1, arr.ind=TRUE)
+cor.pairs = which(cor.matrix>0.6&cor.matrix!=1, arr.ind=TRUE)
 cor.pairs = unique(t(apply(cor.pairs, 1, sort)))
 colnames(cor.pairs) <- c("row", "col")
 nam = colnames(cor.matrix)
