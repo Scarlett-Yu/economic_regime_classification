@@ -286,16 +286,17 @@ fviz_cluster(k2, data = df2019, palette = "jco", ggtheme = theme_classic())
 
 ## Quarterly Data Analysis
 
-Now, we repeated the analysis using quarterly data
+For the quarterly data, we can keep 11 economic indices since even the contribution of the least important index is above 5%
 
 ```{r echo=FALSE}
 #quarterly - using original data
 #PCA
-df.qtr = df[, !colnames(df) %in% c("CPI YOY Index","EHUPUS Index", "M2% YOY Index")]
-#df.qtr2019 = df.qtr[-nrow(df), ]
+df.qtr = df[, !colnames(df) %in% c("EHUPUS Index", "M2% YOY Index")]
 PCdf.qtr = prcomp(df.qtr, scale =TRUE)
 fviz_contrib(PCdf.qtr, choice = "var", axes = 1:2)
 ```
+
+## Biplot of quarterly data
 
 ```{r echo=FALSE, fig.height=10, fig.width=10}
 fviz_pca_biplot(PCdf.qtr,
@@ -304,10 +305,12 @@ fviz_pca_biplot(PCdf.qtr,
                 repel = T)
 ```
 
+## K-means clustering
+
 ```{r echo=FALSE, fig.height=9, fig.width=9}
 ###Computing k-means clustering
 df2 = as.data.frame(df.qtr)
-k2 <- kmeans(df2, centers = 4, nstart = 15)
+k2 <- kmeans(df2, centers = 4, nstart = 25)
 fviz_cluster(k2, data = df2, palette = "jco", ggtheme = theme_classic())
 ```
 
