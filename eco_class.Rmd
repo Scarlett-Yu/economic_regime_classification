@@ -2,7 +2,7 @@
 title: "Economic Regimes Classification"
 author: "Yijia Yu"
 date: "08/05/2020"
-output: slidy_presentation
+output: pdf_document
 ---
 
 ## Introduction
