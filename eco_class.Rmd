@@ -2,7 +2,7 @@
 title: "Economic Regimes Classification"
 author: "Yijia Yu"
 date: "08/05/2020"
-output: pdf_document
+output: slidy_presentation
 ---
 
 ## Introduction
@@ -244,6 +244,7 @@ The score of 2020 is very unusual, far away from scores of all previous data.
 After removing 2020, the data become more dispersed in the panel. But some highly correlated variables are clustering together, giving bad classification result.
 
 ```{r echo=FALSE, fig.height=8, fig.width=8}
+
 df.yearly2 = df.yearly[-nrow(df.yearly),]
 PCdf2 = prcomp(df.yearly2, scale = TRUE)
 fviz_pca_biplot(PCdf2,
