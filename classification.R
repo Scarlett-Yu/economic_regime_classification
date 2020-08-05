@@ -142,66 +142,83 @@ fviz_pca_var(PCdf,
              repel = TRUE     # Avoid text overlapping
 )
 
-
+png("pca2020.png", width = 250, height = 200, units='mm', res = 300)
 fviz_pca_biplot(PCdf,
                 col.ind = df.yearly.label$label, 
-                palette = c("#00AFBB",  "#FC4E07"),
+                palette = c("#00AFBB", "#E7B800", "#FC4E07"),
                 repel = TRUE     # Avoid text overlapping
 )
+dev.off()
+
 
 # by removing the least 4 unimportant index and 2020
 colnames(df.yearly)
 df.yearly2.2020 = df.yearly[, !colnames(df.yearly) %in% c("CPI YOY Index", "EHUPUS Index", "M2% YOY Index")]
 df.yearly2 = df.yearly2.2020[-nrow(df.yearly2.2020),]
 #"TMNOCHNG Index"
-PCdf2 = prcomp(df.yearly2, scale = TRUE)
+PCdf2 = prcomp(df.yearly2.2020, scale = TRUE)
 summary(PCdf2)
 fviz_contrib(PCdf2, choice = "var", axes = 1:2)
-
+png("pca2019_1.png", width = 250, height = 200, units='mm', res = 300)
 fviz_pca_biplot(PCdf2,
-             col.ind = df.yearly.label$label[-nrow(df.yearly)], 
-             palette = c("#00AFBB",  "#FC4E07"),
+             #col.ind = df.yearly.label$label[-nrow(df.yearly)], 
+             col.ind = df.yearly.label$label,
+             palette =  c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE     # Avoid text overlapping
 )
+dev.off()
+png("pca2019_2.png", width = 250, height = 200, units='mm', res = 300)
+PCdf2 = prcomp(df.yearly2.2019, scale = TRUE)
+fviz_pca_biplot(PCdf2,
+                col.ind = df.yearly.label$label[-nrow(df.yearly)], 
+                palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+                repel = TRUE   
+)
+dev.off()
+
 ###k-means
 
 ###Computing k-means clustering
-df2020 = as.data.frame(df.yearly2.2020)
-set.seed(123)
+
 # The plot above represents the variance within the clusters. It decreases as k increases, but it can be seen a bend (or “elbow”) at k = 5. 
 #fviz_nbclust(df2,kmeans,method = "wss")+geom_vline(xintercept = 5, linetype = 2)
-
+df.yearly2.2020 = df.yearly[, !colnames(df.yearly) %in% c("CPI YOY Index", "EHUPUS Index", "M2% YOY Index")]
+###Computing k-means clustering
+set.seed(3456)
+df2020 = as.data.frame(df.yearly2.2020)
+png("kmeans1.png", width = 250, height = 200, units='mm', res = 300)
 k2 <- kmeans(df2020, centers = 5, nstart = 20, iter.max = 100)
 fviz_cluster(k2, data = df2020, palette = "jco", ggtheme = theme_classic())
-df2019 = as.data.frame(df.yearly2)
-set.seed(123)
-# The plot above represents the variance within the clusters. It decreases as k increases, but it can be seen a bend (or “elbow”) at k = 5. 
-#fviz_nbclust(df2,kmeans,method = "wss")+geom_vline(xintercept = 5, linetype = 2)
-
+dev.off()
+png("kmeans2.png", width = 250, height = 200, units='mm', res = 300)
+df2019 = as.data.frame(df.yearly2.2019)
 k2 <- kmeans(df2019, centers = 4, nstart = 20, iter.max = 100)
 fviz_cluster(k2, data = df2019, palette = "jco", ggtheme = theme_classic())
-
+dev.off()
 #quarterly - using original data
 #PCA
 df.qtr = df[, !colnames(df) %in% c("CPI YOY Index","EHUPUS Index", "M2% YOY Index")]
 #df.qtr2019 = df.qtr[-nrow(df), ]
 PCdf.qtr = prcomp(df.qtr, scale =TRUE)
 fviz_contrib(PCdf.qtr, choice = "var", axes = 1:2)
+
+png("pca2020_2.png", width = 250, height = 200, units='mm', res = 300)
 fviz_pca_biplot(PCdf.qtr,
                 col.ind = df.label$label, 
-                palette = c("#00AFBB",  "#FC4E07"),
+                palette = c("#00AFBB", "#FC4E07", "#E7B800"),
                 repel = T)
-
+dev.off()
 ###k-means
+png("kmeansqtr_2.png", width = 250, height = 200, units='mm', res = 300)
 
 ###Computing k-means clustering
 df2 = as.data.frame(df.qtr)
 # The plot above represents the variance within the clusters. It decreases as k increases, but it can be seen a bend (or “elbow”) at k = 4. 
-fviz_nbclust(df2,kmeans,method = "wss")+
-  geom_vline(xintercept = 5, linetype = 2)
-
-k2 <- kmeans(df2, centers = 4, nstart = 15)
+#fviz_nbclust(df2,kmeans,method = "wss")+
+  #geom_vline(xintercept = 5, linetype = 2)
+k2 <- kmeans(df2, centers = 4, nstart = 25)
 fviz_cluster(k2, data = df2, palette = "jco", ggtheme = theme_classic())
+dev.off()
 
 res = cbind(k2$cluster,df.label$label)
 res[which(res[,2]==2),1]
