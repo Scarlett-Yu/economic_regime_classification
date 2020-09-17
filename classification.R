@@ -2,7 +2,7 @@ library("Rblpapi")
 library("xts")
 library("imputeTS")
 
-Economic_Regime_Data <- read_excel("Economic Regime Data.xlsx", sheet = "New Data", skip = 1, n_max = 2)
+Economic_Regime_Data <- readxl::read_excel("Economic Regime Data.xlsx", sheet = "New Data", skip = 1, n_max = 2)
 des = as.vector(t(Economic_Regime_Data[1,-1]))
 # index = as.vector(t(Economic_Regime_Data[2,-1]))
 # ticker names, input value
@@ -76,6 +76,13 @@ recr = function(start, end){
   r = as.character(r)
   return(r)
 }
+#economic expansions
+start_exp = c("Apr 1958" ,"Feb 1961", "Nov 1970", "Mar 1975", "Jul 1980", "Dec 1982", "Mar 1991", "Nov 2001", "Jun 2009")
+end_exp =   c("Apr 1960" ,"Dec 1969", "Nov 1973", "Jan 1980", "Jul 1981", "Jul 1990", "Mar 2001", "Dec 2007", "Feb 2020")
+for(i in 1:length(start_exp)){
+  r = recr(start = start_exp[i], end = end_exp[i])
+  df.label[r, "label"] = "expansion"
+}
 #Recession of 1960–61: Another primarily monetary recession occurred after the Federal Reserve began raising interest rates in 1959. The government switched from deficit (or 2.6% in 1959) to surplus (of 0.1% in 1960). When the economy emerged from this short recession, it began the second-longest period of growth in NBER history. The Dow Jones Industrial Average (Dow) finally reached its lowest point on February 20, 1961, about 4 weeks after President Kennedy was inaugurated.
 r = recr(start = "Apr 1960", end = "Feb 1961")
 df.label[r, "label"] = "recession"
@@ -107,6 +114,8 @@ df.label[r, "label"] = "recession"
 df.label$label[is.na(df.label$label)]<- "other"
 df.label$label = as.factor(df.label$label)
 
+
+
 #########################################
 
 #PCA
@@ -115,112 +124,58 @@ df.yearly = period.apply(df,INDEX=ep, FUN=mean)
 df.yearly = as.data.frame(df.yearly)
 row.names(df.yearly) = format(as.Date(row.names(df.yearly)),"%Y")
 rec = function(x){
-  if(length(which(x=="recession")) > 1){
+  if(length(which(x=="recession")) > length(which(x=="expansion"))){
     return("recession")
-  }else{
+  }
+  else if(length(which(x=="recession")) < length(which(x=="expansion"))){
+    return("expansion")
+  }
+  else{
     return("other")
   }
 }
 df.yearly.label = as.data.frame(df.yearly)
 df.yearly.label$label = as.factor(period.apply(df.label$label,INDEX=ep, FUN=rec))
 df.yearly.label[nrow(df.yearly.label),]$label <-"recession"
-
-
 PCdf = prcomp(df.yearly, scale =TRUE)
-fviz_contrib(PCdf, choice = "var", axes = 1)
-fviz_contrib(PCdf, choice = "var", axes = 2)
+df.yearly2 = df.yearly[-nrow(df.yearly),]
+PCdf2 = prcomp(df.yearly2, scale = TRUE)
 
-fviz_pca_ind(PCdf,
-             col.ind = "cos2", # Color by the quality of representation
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE     # Avoid text overlapping
-)
-
-fviz_pca_var(PCdf,
-             col.var = "contrib", # Color by contributions to the PC
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE     # Avoid text overlapping
-)
-
-png("pca2020.png", width = 250, height = 200, units='mm', res = 300)
-fviz_pca_biplot(PCdf,
-                col.ind = df.yearly.label$label, 
-                palette = c("#00AFBB", "#E7B800", "#FC4E07"),
-                repel = TRUE     # Avoid text overlapping
-)
-dev.off()
+df.yearly2.2019 = df.yearly2[, !colnames(df.yearly2) %in% c("CPI YOY Index"
+                                                            , "EHUPUS Index"
+                                                            , "M2% YOY Index"
+)]
+PCdf2 = prcomp(df.yearly2.2019, scale = TRUE)
 
 
-# by removing the least 4 unimportant index and 2020
-colnames(df.yearly)
 df.yearly2.2020 = df.yearly[, !colnames(df.yearly) %in% c("CPI YOY Index", "EHUPUS Index", "M2% YOY Index")]
-df.yearly2 = df.yearly2.2020[-nrow(df.yearly2.2020),]
-#"TMNOCHNG Index"
-PCdf2 = prcomp(df.yearly2.2020, scale = TRUE)
-summary(PCdf2)
-fviz_contrib(PCdf2, choice = "var", axes = 1:2)
-png("pca2019_1.png", width = 250, height = 200, units='mm', res = 300)
-fviz_pca_biplot(PCdf2,
-             #col.ind = df.yearly.label$label[-nrow(df.yearly)], 
-             col.ind = df.yearly.label$label,
-             palette =  c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE     # Avoid text overlapping
-)
-dev.off()
-png("pca2019_2.png", width = 250, height = 200, units='mm', res = 300)
+###Computing k-means clustering
+set.seed(3456)
+df2020 = as.data.frame(df.yearly2.2020)
+k2 <- kmeans(df2020, centers = 5, nstart = 20, iter.max = 100)
+fviz_cluster(k2, data = df2020, palette = "jco", ggtheme = theme_classic())
+
+df2019 = as.data.frame(df.yearly2.2019)
+k2 <- kmeans(df2019, centers = 4, nstart = 20, iter.max = 100)
+fviz_cluster(k2, data = df2019, palette = "jco", ggtheme = theme_classic())
+
+#quarterly - using original data
+#PCA
+df.qtr = df[, !colnames(df) %in% c("EHUPUS Index", "M2% YOY Index")]
+PCdf.qtr = prcomp(df.qtr, scale =TRUE)
+fviz_contrib(PCdf.qtr, choice = "var", axes = 1:2)
+
+###Computing k-means clustering
+df2 = as.data.frame(df.qtr)
+k2 <- kmeans(df2, centers = 4, nstart = 25)
+fviz_cluster(k2, data = df2, palette = "jco", ggtheme = theme_classic())
+
+colnames(df.yearly2.2019) <- c("GDP", "LEI", "CPI", "Personal Income", "Consumer Credit", "Industrial Production", "Account Balance", "Private housing", "Employment payrolls","Manufacturing new order")
 PCdf2 = prcomp(df.yearly2.2019, scale = TRUE)
 fviz_pca_biplot(PCdf2,
                 col.ind = df.yearly.label$label[-nrow(df.yearly)], 
                 palette = c("#00AFBB", "#E7B800", "#FC4E07"),
                 repel = TRUE   
 )
-dev.off()
 
-###k-means
-
-###Computing k-means clustering
-
-# The plot above represents the variance within the clusters. It decreases as k increases, but it can be seen a bend (or “elbow”) at k = 5. 
-#fviz_nbclust(df2,kmeans,method = "wss")+geom_vline(xintercept = 5, linetype = 2)
-df.yearly2.2020 = df.yearly[, !colnames(df.yearly) %in% c("CPI YOY Index", "EHUPUS Index", "M2% YOY Index")]
-###Computing k-means clustering
-set.seed(3456)
-df2020 = as.data.frame(df.yearly2.2020)
-png("kmeans1.png", width = 250, height = 200, units='mm', res = 300)
-k2 <- kmeans(df2020, centers = 5, nstart = 20, iter.max = 100)
-fviz_cluster(k2, data = df2020, palette = "jco", ggtheme = theme_classic())
-dev.off()
-png("kmeans2.png", width = 250, height = 200, units='mm', res = 300)
-df2019 = as.data.frame(df.yearly2.2019)
-k2 <- kmeans(df2019, centers = 4, nstart = 20, iter.max = 100)
-fviz_cluster(k2, data = df2019, palette = "jco", ggtheme = theme_classic())
-dev.off()
-#quarterly - using original data
-#PCA
-df.qtr = df[, !colnames(df) %in% c("CPI YOY Index","EHUPUS Index", "M2% YOY Index")]
-#df.qtr2019 = df.qtr[-nrow(df), ]
-PCdf.qtr = prcomp(df.qtr, scale =TRUE)
-fviz_contrib(PCdf.qtr, choice = "var", axes = 1:2)
-
-png("pca2020_2.png", width = 250, height = 200, units='mm', res = 300)
-fviz_pca_biplot(PCdf.qtr,
-                col.ind = df.label$label, 
-                palette = c("#00AFBB", "#FC4E07", "#E7B800"),
-                repel = T)
-dev.off()
-###k-means
-png("kmeansqtr_2.png", width = 250, height = 200, units='mm', res = 300)
-
-###Computing k-means clustering
-df2 = as.data.frame(df.qtr)
-# The plot above represents the variance within the clusters. It decreases as k increases, but it can be seen a bend (or “elbow”) at k = 4. 
-#fviz_nbclust(df2,kmeans,method = "wss")+
-  #geom_vline(xintercept = 5, linetype = 2)
-k2 <- kmeans(df2, centers = 4, nstart = 25)
-fviz_cluster(k2, data = df2, palette = "jco", ggtheme = theme_classic())
-dev.off()
-
-res = cbind(k2$cluster,df.label$label)
-res[which(res[,2]==2),1]
-
-
+k2
