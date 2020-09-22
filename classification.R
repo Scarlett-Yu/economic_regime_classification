@@ -178,4 +178,5 @@ fviz_pca_biplot(PCdf2,
                 repel = TRUE   
 )
 
-k2
+kmean.df = cbind(df.label,as.matrix(k2$cluster))
+kmean.df[,c(14,15)]
